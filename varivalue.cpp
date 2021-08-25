@@ -1,5 +1,6 @@
 #include "varivalue.h"
 #include <cassert>
+#include <stdexcept>
 
 static const VariValue NULLVALUE;
 
