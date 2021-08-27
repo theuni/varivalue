@@ -11,6 +11,13 @@
 #include <string>
 #include <map>
 
+namespace varivalue {
+// visitor helper type. From: https://en.cppreference.com/w/cpp/utility/variant/visit
+template<class... Ts> struct overloaded final : Ts... { using Ts::operator()...; };
+// explicit deduction guide (not needed as of C++20)
+template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+}
+
 class VariValue;
 using num_t = std::variant<int64_t, uint64_t, double>;
 using array_t = std::vector<VariValue>;
@@ -21,15 +28,24 @@ class VariValue {
 public:
     enum VType { VNULL, VOBJ, VARR, VSTR, VNUM, VBOOL, };
 
-    VariValue();
-    VariValue(VType initialType);
-
-    VariValue(uint64_t val);
-    VariValue(int64_t val);
-    VariValue(bool val);
-    VariValue(int val);
-    VariValue(double val);
-    VariValue(std::string val);
+    constexpr VariValue(VType initialType) {
+        switch (initialType) {
+            case VNULL: m_value = std::monostate(); break;
+            case VOBJ: m_value = object_t{}; break;
+            case VARR: m_value = array_t{}; break;
+            case VSTR: m_value = std::string(); break;
+            case VNUM: m_value = num_t{}; break;
+            case VBOOL: m_value = bool{}; break;
+            default: m_value = std::monostate(); break;
+        }
+    }
+    constexpr VariValue() {};
+    explicit constexpr VariValue(uint64_t val) : m_value{val}{}
+    explicit constexpr VariValue(int64_t val) : m_value{val}{}
+    explicit constexpr VariValue(bool val) : m_value{val}{}
+    explicit constexpr VariValue(int val) : m_value{static_cast<int64_t>(val)}{}
+    explicit constexpr VariValue(double val) : m_value{val}{}
+    explicit VariValue(std::string val) : m_value{std::move(val)}{}
     void clear();
 
     bool setNull();
@@ -71,6 +87,7 @@ public:
     bool pushKV(std::string key, bool val_);
     bool pushKV(std::string key, int val_);
     bool pushKV(std::string key, double val_);
+    bool pushKV(std::string key, std::monostate);
     bool pushKVs(VariValue obj);
 
 
@@ -82,6 +99,7 @@ public:
     bool push_back(bool val_);
     bool push_back(int val_);
     bool push_back(double val_);
+    bool push_back(std::monostate);
     bool push_backV(std::vector<VariValue> vec);
 
     // Strict type-specific getters, these throw std::runtime_error if the
@@ -96,11 +114,19 @@ public:
     const VariValue& get_obj() const;
     const VariValue& get_array() const;
 
+    std::string write(unsigned int prettyIndent = 0, unsigned int indentLevel = 0) const;
+    bool read(const char *raw, size_t len);
+    bool read(const char *raw);
+    bool read(const std::string& rawStr);
+
     enum VType type() const;
     friend const VariValue& find_value( const VariValue& obj, const std::string& name);
 
 private:
     json_t m_value;
 };
+
 const VariValue& find_value( const VariValue& obj, const std::string& name);
+
+using UniValue = VariValue;
 #endif // __JSON_H__

@@ -8,6 +8,8 @@ OBJS  += $(GENCONTEXT_OBJS)
 PROGS += $(GENCONTEXT_PROG)
 
 VARIVALUE_OBJS  =
+VARIVALUE_OBJS += varivalue_write.o
+VARIVALUE_OBJS += varivalue_read.o
 VARIVALUE_OBJS += varivalue.o
 VARIVALUE_OBJS += main.o
 VARIVALUE_PROG = varivalue

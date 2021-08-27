@@ -1,52 +1,10 @@
 #include "varivalue.h"
+#include "varivalue_write.h"
+
 #include <cassert>
 #include <stdexcept>
 
 static const VariValue NULLVALUE;
-
-// visitor helper type. From: https://en.cppreference.com/w/cpp/utility/variant/visit
-template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-// explicit deduction guide (not needed as of C++20)
-template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-
-VariValue::VariValue(VType initialType) {
-    switch (initialType) {
-        case VNULL: m_value = std::monostate(); break;
-        case VOBJ: m_value = object_t{}; break;
-        case VARR: m_value = array_t{}; break;
-        case VSTR: m_value = std::string(); break;
-        case VNUM: m_value = num_t{}; break;
-        case VBOOL: m_value = bool{}; break;
-        default: m_value = std::monostate(); break;
-    }
-}
-
-VariValue::VariValue() {
-}
-
-VariValue::VariValue(uint64_t val) {
-    m_value = num_t{val};
-}
-
-VariValue::VariValue(int64_t val) {
-    m_value = num_t{val};
-}
-
-VariValue::VariValue(bool val) {
-    m_value = val;
-}
-
-VariValue::VariValue(int val) {
-    m_value = num_t{static_cast<int64_t>(val)};
-}
-
-VariValue::VariValue(double val) {
-    m_value = num_t{val};
-}
-
-VariValue::VariValue(std::string val) {
-    m_value = std::move(val);
-}
 
 void VariValue::clear()
 {
@@ -109,7 +67,7 @@ bool VariValue::setObject()
 
 enum VariValue::VType VariValue::getType() const
 {
-    return std::visit(overloaded {
+    return std::visit(varivalue::overloaded {
         [](const object_t&) { return VOBJ;},
         [](const array_t&) { return VARR;},
         [](const std::string&) { return VSTR;},
@@ -203,15 +161,17 @@ bool VariValue::isNull() const
 
 bool VariValue::isTrue() const
 {
-    if(auto ret = std::get_if<bool>(&m_value))
+    if(auto ret = std::get_if<bool>(&m_value)) {
         return *ret;
+    }
     return false;
 }
 
 bool VariValue::isFalse() const
 {
-    if(auto ret = std::get_if<bool>(&m_value))
+    if(auto ret = std::get_if<bool>(&m_value)) {
         return *ret == false;
+    }
     return false;
 }
 
@@ -291,6 +251,14 @@ bool VariValue::pushKV(std::string key, int val) {
 bool VariValue::pushKV(std::string key, double val) {
     if(auto ret = std::get_if<object_t>(&m_value)) {
         ret->emplace(std::move(key), val);
+        return true;
+    }
+    return false;
+}
+
+bool VariValue::pushKV(std::string key, std::monostate) {
+    if(auto ret = std::get_if<object_t>(&m_value)) {
+        ret->emplace(std::move(key), VariValue{});
         return true;
     }
     return false;
@@ -378,6 +346,15 @@ bool VariValue::push_back(double val)
     return false;
 }
 
+bool VariValue::push_back(std::monostate)
+{
+    if(auto ret = std::get_if<array_t>(&m_value)) {
+        ret->push_back(VariValue{});
+        return true;
+    }
+    return false;
+}
+
 bool VariValue::push_backV(std::vector<VariValue> vec)
 {
     if(auto lhs = std::get_if<array_t>(&m_value)) {
@@ -392,7 +369,7 @@ std::vector<std::string> VariValue::getKeys() const
 {
     if(auto ret = std::get_if<object_t>(&m_value)) {
         std::vector<std::string> keys;
-        for (auto i : *ret) {
+        for (auto&& i : *ret) {
             keys.push_back(i.first);
         }
         return keys;
@@ -404,7 +381,7 @@ std::vector<VariValue> VariValue::getValues() const
 {
     if(auto ret = std::get_if<object_t>(&m_value)) {
         std::vector<VariValue> values;
-        for (auto i : *ret) {
+        for (auto&& i : *ret) {
             values.push_back(i.second);
         }
         return values;
@@ -489,4 +466,25 @@ const VariValue& find_value(const VariValue& obj, const std::string& name)
         }
     }
     return NULLVALUE;
+}
+
+std::string VariValue::write(unsigned int prettyIndent, unsigned int indentLevel) const
+{
+    std::string s;
+    s.reserve(1024);
+
+    unsigned int modIndent = indentLevel;
+    if (modIndent == 0)
+        modIndent = 1;
+
+    std::visit(varivalue::overloaded {
+        [&](const object_t& val) { return writeObject(val, s, prettyIndent, modIndent);},
+        [&](const array_t& val) { return writeArray(val, s, prettyIndent, modIndent);},
+        [&](const std::string val) { return writeString(val, s);},
+        [&](const num_t& val) { return writeNum(val, s);},
+        [&](bool val) { return writeBool(val, s);},
+        [&](std::monostate) { return writeNull(s);}
+        }, m_value);
+
+    return s;
 }
