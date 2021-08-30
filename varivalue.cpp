@@ -1,10 +1,50 @@
 #include "varivalue.h"
 #include "varivalue_write.h"
+#include "varivalue_util.h"
 
 #include <cassert>
 #include <stdexcept>
 
 static const VariValue NULLVALUE;
+
+VariValue::VariValue(UniValue::VType initialType, std::string initialStr) : VariValue(initialType)
+{
+    std::visit(varivalue::overloaded {
+        [&](std::string& str) { str = std::move(initialStr); },
+        [&](VariNum& num) { num.setNumStr(std::move(initialStr)); },
+        [&](const auto&)  {},
+        }, m_value);
+}
+
+VariValue:: VariValue(uint64_t val)
+{
+    m_value = num_t{val};
+}
+
+VariValue:: VariValue(int64_t val)
+{
+    m_value = num_t{val};
+}
+
+VariValue:: VariValue(bool val)
+{
+    m_value = num_t{val};
+}
+
+VariValue:: VariValue(int val)
+{
+    m_value = num_t{val};
+}
+
+VariValue:: VariValue(double val)
+{
+    m_value = num_t{val};
+}
+
+VariValue:: VariValue(std::string val)
+{
+    m_value = std::move(val);
+}
 
 void VariValue::clear()
 {
@@ -25,32 +65,53 @@ bool VariValue::setBool(bool val)
 
 bool VariValue::setInt(uint64_t val)
 {
-    m_value = num_t(val);
-    return true;
+    if (num_t num; num.setInt(val)) {
+        m_value = std::move(num);
+        return true;
+    }
+    return false;
 }
 
 bool VariValue::setInt(int64_t val)
 {
-    m_value = num_t(val);
-    return true;
+    if (num_t num; num.setInt(val)) {
+        m_value = std::move(num);
+        return true;
+    }
+    return false;
 }
 
 bool VariValue::setInt(int val)
 {
-    m_value = num_t(static_cast<int64_t>(val));
-    return true;
+    if (num_t num; num.setInt(val)) {
+        m_value = std::move(num);
+        return true;
+    }
+    return false;
 }
 
 bool VariValue::setFloat(double val)
 {
-    m_value = num_t(val);
-    return true;
+    if (num_t num; num.setFloat(val)) {
+        m_value = std::move(num);
+        return true;
+    }
+    return false;
 }
 
 bool VariValue::setStr(std::string val)
 {
     m_value = std::move(val);
     return true;
+}
+
+bool VariValue::setNumStr(std::string val)
+{
+    if (num_t num; num.setNumStr(std::move(val))) {
+        m_value = std::move(num);
+        return true;
+    }
+    return false;
 }
 
 bool VariValue::setArray()
@@ -79,23 +140,29 @@ enum VariValue::VType VariValue::getType() const
 
 std::string VariValue::getValStr() const
 {
-    return {};
+    return std::visit(varivalue::overloaded {
+        [&](const std::string& val) { return val;},
+        [&](const num_t& num) { return num.getValStr();},
+        [&](const auto&) -> std::string { return "";},
+        }, m_value);
 }
 
 bool VariValue::empty() const
 {
-    if(auto ret = std::get_if<array_t>(&m_value)) {
-        return ret->empty();
-    }
-    return true;
+    return std::visit(varivalue::overloaded {
+        [&](const object_t& obj) { return obj.empty();},
+        [&](const array_t& arr) { return arr.empty();},
+        [&](const auto&)  { return true;},
+        }, m_value);
 }
 
 size_t VariValue::size() const
 {
-    if(auto ret = std::get_if<array_t>(&m_value)) {
-        return ret->size();
-    }
-    return 0;
+    return std::visit(varivalue::overloaded {
+        [&](const object_t& obj) { return obj.size();},
+        [&](const array_t& arr) { return arr.size();},
+        [&](const auto&) -> size_t  { return 0; },
+        }, m_value);
 }
 
 bool VariValue::getBool() const
@@ -409,9 +476,7 @@ const std::string& VariValue::get_str() const
 int VariValue::get_int() const
 {
     if(auto num = std::get_if<num_t>(&m_value)) {
-        if(auto ret = std::get_if<int64_t>(num)) {
-            return *ret;
-        }
+        return num->get_int();
     }
     throw std::runtime_error("JSON value is not an integer as expected");
 }
@@ -419,9 +484,7 @@ int VariValue::get_int() const
 int64_t VariValue::get_int64() const
 {
     if(auto num = std::get_if<num_t>(&m_value)) {
-        if(auto ret = std::get_if<int64_t>(num)) {
-            return *ret;
-        }
+        return num->get_int64();
     }
     throw std::runtime_error("JSON value is not an integer as expected");
 }
@@ -429,9 +492,7 @@ int64_t VariValue::get_int64() const
 double VariValue::get_real() const
 {
     if(auto num = std::get_if<num_t>(&m_value)) {
-        if(auto ret = std::get_if<double>(num)) {
-            return *ret;
-        }
+        return num->get_real();
     }
     throw std::runtime_error("JSON value is not a number as expected");
 }

@@ -86,9 +86,7 @@ void writeString(const std::string& str, std::string& s)
 
 void writeNum(num_t num, std::string& s)
 {
-    std::visit([&s](auto&& val) {
-        s += std::to_string(val);
-    }, num);
+    s += num.getValStr();
 }
 
 void writeBool(bool val, std::string& s)

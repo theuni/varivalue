@@ -5,6 +5,8 @@
 #ifndef __JSON_H__
 #define __JSON_H__
 
+#include "varinum.h"
+
 #include <variant>
 #include <cstddef>
 #include <vector>
@@ -19,7 +21,8 @@ template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 }
 
 class VariValue;
-using num_t = std::variant<int64_t, uint64_t, double>;
+class VariNum;
+using num_t = VariNum;
 using array_t = std::vector<VariValue>;
 using object_t = std::map<std::string, VariValue>;
 using json_t = std::variant<std::monostate, object_t, array_t, std::string, num_t, bool>;
@@ -39,13 +42,16 @@ public:
             default: m_value = std::monostate(); break;
         }
     }
+
+    VariValue(VType initialType, std::string initialStr);
+
     constexpr VariValue() {};
-    explicit constexpr VariValue(uint64_t val) : m_value{val}{}
-    explicit constexpr VariValue(int64_t val) : m_value{val}{}
-    explicit constexpr VariValue(bool val) : m_value{val}{}
-    explicit constexpr VariValue(int val) : m_value{static_cast<int64_t>(val)}{}
-    explicit constexpr VariValue(double val) : m_value{val}{}
-    explicit VariValue(std::string val) : m_value{std::move(val)}{}
+    explicit VariValue(uint64_t val);
+    explicit VariValue(int64_t val);
+    explicit VariValue(bool val);
+    explicit VariValue(int val);
+    explicit VariValue(double val);
+    explicit VariValue(std::string val);
     void clear();
 
     bool setNull();
@@ -57,6 +63,7 @@ public:
     bool setStr(std::string val);
     bool setArray();
     bool setObject();
+    bool setNumStr(std::string val);
 
     enum VType getType() const;
     std::string getValStr() const;

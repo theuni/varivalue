@@ -11,6 +11,8 @@ VARIVALUE_OBJS  =
 VARIVALUE_OBJS += varivalue_write.o
 VARIVALUE_OBJS += varivalue_read.o
 VARIVALUE_OBJS += varivalue.o
+VARIVALUE_OBJS += varivalue_util.o
+VARIVALUE_OBJS += varinum.o
 VARIVALUE_OBJS += main.o
 VARIVALUE_PROG = varivalue
 
