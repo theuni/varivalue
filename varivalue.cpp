@@ -28,7 +28,7 @@ VariValue:: VariValue(int64_t val)
 
 VariValue:: VariValue(bool val)
 {
-    m_value = num_t{val};
+    m_value = val;
 }
 
 VariValue:: VariValue(int val)
@@ -44,6 +44,13 @@ VariValue:: VariValue(double val)
 VariValue:: VariValue(std::string val)
 {
     m_value = std::move(val);
+}
+
+VariValue:: VariValue(const char* val)
+{
+    if (val) {
+        m_value = std::string(val);
+    }
 }
 
 void VariValue::clear()
@@ -143,6 +150,7 @@ std::string VariValue::getValStr() const
     return std::visit(varivalue::overloaded {
         [&](const std::string& val) { return val;},
         [&](const num_t& num) { return num.getValStr();},
+        [&](const bool& val) -> std::string { return val ? "1" : "";},
         [&](const auto&) -> std::string { return "";},
         }, m_value);
 }
@@ -165,6 +173,16 @@ size_t VariValue::size() const
         }, m_value);
 }
 
+void VariValue::reserve(size_t n) {
+
+    std::visit(varivalue::overloaded {
+        [&](object_t&) {/* TODO: fill in when object is unordered_map */ },
+        [&](array_t& arr) { arr.reserve(n); },
+        [&](std::string& str) {str.reserve(n); },
+        [&](const auto&) {},
+        }, m_value);
+}
+
 bool VariValue::getBool() const
 {
     if(auto ret = std::get_if<bool>(&m_value)) {
@@ -182,10 +200,19 @@ void VariValue::getObjMap(std::map<std::string,VariValue>& kv) const
 }
 
 
-bool VariValue::checkObject(const std::map<std::string,VariValue::VType>&) const
+bool VariValue::checkObject(const std::map<std::string,VariValue::VType>& keytypes) const
 {
-    // TODO?
-    assert(false);
+    if(auto ret = std::get_if<object_t>(&m_value)) {
+        for (const auto& [key, type] : keytypes) {
+            if (auto match = ret->find(key); match != ret->end()) {
+                if (match->second.getType() != type) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
 const VariValue& VariValue::operator[](const std::string& key) const
@@ -270,7 +297,7 @@ bool VariValue::isObject() const
 
 bool VariValue::pushKV(std::string key, std::string val) {
     if(auto ret = std::get_if<object_t>(&m_value)) {
-        ret->emplace(std::move(key), std::move(val));
+        ret->insert_or_assign(std::move(key), VariValue{std::move(val)});
         return true;
     }
     return false;
@@ -285,7 +312,7 @@ bool VariValue::pushKV(std::string key, const char *val) {
 
 bool VariValue::pushKV(std::string key, int64_t val) {
     if(auto ret = std::get_if<object_t>(&m_value)) {
-        ret->emplace(std::move(key), val);
+        ret->insert_or_assign(std::move(key), VariValue{val});
         return true;
     }
     return false;
@@ -293,7 +320,7 @@ bool VariValue::pushKV(std::string key, int64_t val) {
 
 bool VariValue::pushKV(std::string key, uint64_t val) {
     if(auto ret = std::get_if<object_t>(&m_value)) {
-        ret->emplace(std::move(key), val);
+        ret->insert_or_assign(std::move(key), VariValue{val});
         return true;
     }
     return false;
@@ -301,7 +328,7 @@ bool VariValue::pushKV(std::string key, uint64_t val) {
 
 bool VariValue::pushKV(std::string key, bool val) {
     if(auto ret = std::get_if<object_t>(&m_value)) {
-        ret->emplace(std::move(key), val);
+        ret->insert_or_assign(std::move(key), VariValue{val});
         return true;
     }
     return false;
@@ -309,7 +336,7 @@ bool VariValue::pushKV(std::string key, bool val) {
 
 bool VariValue::pushKV(std::string key, int val) {
     if(auto ret = std::get_if<object_t>(&m_value)) {
-        ret->emplace(std::move(key), val);
+        ret->insert_or_assign(std::move(key), VariValue{val});
         return true;
     }
     return false;
@@ -317,7 +344,7 @@ bool VariValue::pushKV(std::string key, int val) {
 
 bool VariValue::pushKV(std::string key, double val) {
     if(auto ret = std::get_if<object_t>(&m_value)) {
-        ret->emplace(std::move(key), val);
+        ret->insert_or_assign(std::move(key), VariValue{val});
         return true;
     }
     return false;
@@ -325,7 +352,16 @@ bool VariValue::pushKV(std::string key, double val) {
 
 bool VariValue::pushKV(std::string key, std::monostate) {
     if(auto ret = std::get_if<object_t>(&m_value)) {
-        ret->emplace(std::move(key), VariValue{});
+        ret->insert_or_assign(std::move(key), VariValue{});
+        return true;
+    }
+    return false;
+}
+
+bool VariValue::pushKV(std::string key, VariValue obj)
+{
+    if(auto ret = std::get_if<object_t>(&m_value)) {
+        ret->insert_or_assign(std::move(key), std::move(obj));
         return true;
     }
     return false;
@@ -446,14 +482,20 @@ std::vector<std::string> VariValue::getKeys() const
 
 std::vector<VariValue> VariValue::getValues() const
 {
-    if(auto ret = std::get_if<object_t>(&m_value)) {
-        std::vector<VariValue> values;
-        for (auto&& i : *ret) {
-            values.push_back(i.second);
-        }
-        return values;
-    }
-    throw std::runtime_error("JSON value is not an object as expected");
+    return std::visit(varivalue::overloaded {
+        [&](const array_t& arr) { return arr;},
+        [&](const object_t& obj) {
+            std::vector<VariValue> values;
+            values.reserve(obj.size());
+            for (const auto& i : obj) {
+                values.push_back(i.second);
+            }
+            return values;
+        },
+        [&](const auto&) -> std::vector<VariValue> {
+            throw std::runtime_error("JSON value is not an object as expected");
+        },
+        }, m_value);
 }
 
 bool VariValue::get_bool() const

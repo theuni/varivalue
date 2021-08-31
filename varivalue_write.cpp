@@ -59,8 +59,6 @@ void writeObject(const object_t& obj, std::string& s, unsigned int prettyIndent,
     if (prettyIndent)
         s += "\n";
 
-    auto last = obj.rend()++.base();
-    
     for (auto it = obj.begin(); it != obj.end(); ++it) {
         if (prettyIndent)
             indentStr(prettyIndent, indentLevel, s);
@@ -68,7 +66,9 @@ void writeObject(const object_t& obj, std::string& s, unsigned int prettyIndent,
         if (prettyIndent)
             s += " ";
         s += it->second.write(prettyIndent, indentLevel + 1);
-        if (it  != last)
+        auto tmpit = it;
+        tmpit++;
+        if (tmpit != obj.end())
             s += ",";
         if (prettyIndent)
             s += "\n";

@@ -52,6 +52,7 @@ public:
     explicit VariValue(int val);
     explicit VariValue(double val);
     explicit VariValue(std::string val);
+    explicit VariValue(const char* val);
     void clear();
 
     bool setNull();
@@ -70,6 +71,8 @@ public:
     bool empty() const;
 
     size_t size() const;
+
+    void reserve(size_t n);
 
     bool getBool() const;
     void getObjMap(std::map<std::string,VariValue>& kv) const;
@@ -95,6 +98,7 @@ public:
     bool pushKV(std::string key, int val_);
     bool pushKV(std::string key, double val_);
     bool pushKV(std::string key, std::monostate);
+    bool pushKV(std::string key, VariValue obj);
     bool pushKVs(VariValue obj);
 
 

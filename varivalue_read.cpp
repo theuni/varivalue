@@ -114,7 +114,7 @@ bool VariValue::read(const char *raw, size_t size)
                         stack.push_back(&iter->second);
                     },
                     [&](const auto&) {},
-                }, m_value);
+                }, top->m_value);
             }
 
             if (stack.size() > MAX_JSON_DEPTH)
@@ -177,17 +177,15 @@ bool VariValue::read(const char *raw, size_t size)
             UniValue tmpVal;
             std::visit(varivalue::overloaded {
                 [&](array_t& arr) {
-                    auto& newTop = arr.emplace_back(std::move(tmpVal));
-                    stack.push_back(&newTop);
+                    arr.emplace_back(std::move(tmpVal));
                 },
                 [&](object_t& obj) {
-                    const auto& [iter, inserted] = obj.emplace(std::move(cur_key), std::move(tmpVal));
+                    obj.emplace(std::move(cur_key), std::move(tmpVal));
                     have_key = false;
                     cur_key.clear();
-                    stack.push_back(&iter->second);
                     },
                 [&](const auto&) {},
-            }, m_value);
+            }, top->m_value);
             break;
             }
         case JTOK_KW_TRUE:
@@ -207,21 +205,19 @@ bool VariValue::read(const char *raw, size_t size)
                 m_value = val;
                 break;
             }
-
+            UniValue tmpVal(val);
             UniValue* top = stack.back();
             std::visit(varivalue::overloaded {
                 [&](array_t& arr) {
-                    auto& newTop = arr.emplace_back(val);
-                    stack.push_back(&newTop);
+                    arr.push_back(std::move(tmpVal));
                 },
                 [&](object_t& obj) {
-                    const auto& [iter, inserted] = obj.emplace(std::move(cur_key), val);
+                    obj.emplace(std::move(cur_key), std::move(tmpVal));
                     have_key = false;
                     cur_key.clear();
-                    stack.push_back(&iter->second);
                 },
                 [&](const auto&) {},
-            }, m_value);
+            }, top->m_value);
 
             setExpect(NOT_VALUE);
             break;
@@ -236,17 +232,15 @@ bool VariValue::read(const char *raw, size_t size)
             UniValue *top = stack.back();
             std::visit(varivalue::overloaded {
                 [&](array_t& arr) {
-                    auto& newTop = arr.emplace_back(std::move(tmpVal));
-                    stack.push_back(&newTop);
+                    arr.emplace_back(std::move(tmpVal));
                 },
                 [&](object_t& obj) {
                     const auto& [iter, inserted] = obj.emplace(std::move(cur_key), std::move(tmpVal));
                     have_key = false;
                     cur_key.clear();
-                    stack.push_back(&iter->second);
                 },
                 [&](const auto&) {},
-            }, m_value);
+            }, top->m_value);
 
             setExpect(NOT_VALUE);
             break;
@@ -267,17 +261,15 @@ bool VariValue::read(const char *raw, size_t size)
                 UniValue *top = stack.back();
                 std::visit(varivalue::overloaded {
                     [&](array_t& arr) {
-                        auto& newTop = arr.emplace_back(std::move(tmpVal));
-                        stack.push_back(&newTop);
+                        arr.emplace_back(std::move(tmpVal));
                     },
                     [&](object_t& obj) {
-                        const auto& [iter, inserted] = obj.emplace(std::move(cur_key), std::move(tmpVal));
+                        obj.emplace(std::move(cur_key), std::move(tmpVal));
                         have_key = false;
                         cur_key.clear();
-                        stack.push_back(&iter->second);
                     },
                     [&](const auto&) {},
-                }, m_value);
+                }, top->m_value);
             }
             setExpect(NOT_VALUE);
             break;
