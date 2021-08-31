@@ -16,6 +16,7 @@ public:
     explicit VariNum(int64_t val);
     explicit VariNum(int val);
     explicit VariNum(double val);
+    explicit VariNum(bool) = delete;
 
     bool setInt(uint64_t val);
     bool setInt(int64_t val);
