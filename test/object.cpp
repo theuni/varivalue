@@ -9,7 +9,7 @@
 #include <map>
 #include <cassert>
 #include <stdexcept>
-#include <univalue.h>
+#include <varivalue.h>
 
 #define BOOST_FIXTURE_TEST_SUITE(a, b)
 #define BOOST_AUTO_TEST_CASE(funcName) void funcName()
@@ -334,7 +334,7 @@ BOOST_AUTO_TEST_CASE(univalue_object)
     BOOST_CHECK_EQUAL(obj.setObject(), true);
     UniValue uv;
     uv.setInt(42);
-    obj.__pushKV("age", uv);
+    obj.pushKV("age", uv);
     BOOST_CHECK_EQUAL(obj.size(), 1);
     BOOST_CHECK_EQUAL(obj["age"].getValStr(), "42");
 
