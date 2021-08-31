@@ -46,9 +46,9 @@ public:
     VariValue(VType initialType, std::string initialStr);
 
     constexpr VariValue() {};
+    constexpr explicit VariValue(bool val) : m_value{val}{}
     explicit VariValue(uint64_t val);
     explicit VariValue(int64_t val);
-    explicit VariValue(bool val);
     explicit VariValue(int val);
     explicit VariValue(double val);
     explicit VariValue(std::string val);

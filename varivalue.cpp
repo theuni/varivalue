@@ -26,11 +26,6 @@ VariValue:: VariValue(int64_t val)
     m_value = num_t{val};
 }
 
-VariValue:: VariValue(bool val)
-{
-    m_value = val;
-}
-
 VariValue:: VariValue(int val)
 {
     m_value = num_t{val};
