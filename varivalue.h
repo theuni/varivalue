@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef __JSON_H__
-#define __JSON_H__
+#ifndef __VARIVALUE_H__
+#define __VARIVALUE_H__
 
 #include "varinum.h"
 
@@ -157,4 +157,4 @@ static inline constexpr const char *uvTypeName(VariValue::VType t)
 }
 
 using UniValue = VariValue;
-#endif // __JSON_H__
+#endif // __VARIVALUE_H__
