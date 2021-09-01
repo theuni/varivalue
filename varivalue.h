@@ -137,6 +137,8 @@ private:
     json_t m_value;
 };
 
+extern const VariValue NullUniValue;
+
 const VariValue& find_value( const VariValue& obj, const std::string& name);
 
 using UniValue = VariValue;

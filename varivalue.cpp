@@ -5,7 +5,7 @@
 #include <cassert>
 #include <stdexcept>
 
-static const VariValue NULLVALUE;
+const VariValue NullUniValue;
 
 VariValue::VariValue(UniValue::VType initialType, std::string initialStr) : VariValue(initialType)
 {
@@ -218,7 +218,7 @@ const VariValue& VariValue::operator[](const std::string& key) const
             return it->second;
         }
     }
-    return NULLVALUE;
+    return NullUniValue;
 }
 
 const VariValue& VariValue::operator[](size_t index) const
@@ -228,7 +228,7 @@ const VariValue& VariValue::operator[](size_t index) const
             return ret->operator[](index);
         }
     }
-    return NULLVALUE;
+    return NullUniValue;
 }
 
 
@@ -563,7 +563,7 @@ const VariValue& find_value(const VariValue& obj, const std::string& name)
             return it->second;
         }
     }
-    return NULLVALUE;
+    return NullUniValue;
 }
 
 std::string VariValue::write(unsigned int prettyIndent, unsigned int indentLevel) const
