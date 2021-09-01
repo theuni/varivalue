@@ -141,5 +141,19 @@ extern const VariValue NullUniValue;
 
 const VariValue& find_value( const VariValue& obj, const std::string& name);
 
+static inline constexpr const char *uvTypeName(VariValue::VType t)
+{
+    switch (t) {
+        case VariValue::VNULL: return "null";
+        case VariValue::VBOOL: return "bool";
+        case VariValue::VOBJ: return "object";
+        case VariValue::VARR: return "array";
+        case VariValue::VSTR: return "string";
+        case VariValue::VNUM: return "number";
+    }
+    // not reached
+    return NULL;
+}
+
 using UniValue = VariValue;
 #endif // __JSON_H__
