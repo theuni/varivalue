@@ -289,6 +289,12 @@ bool VariValue::isObject() const
     return std::holds_alternative<object_t>(m_value);
 }
 
+void VariValue::__pushKV(std::string key, VariValue val)
+{
+    if(auto ret = std::get_if<object_t>(&m_value)) {
+        ret->insert_or_assign(std::move(key), std::move(val));
+    }
+}
 
 bool VariValue::pushKV(std::string key, std::string val) {
     if(auto ret = std::get_if<object_t>(&m_value)) {

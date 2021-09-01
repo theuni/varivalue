@@ -90,6 +90,7 @@ public:
     bool isArray() const;
     bool isObject() const;
 
+    void __pushKV(std::string key, VariValue val);
     bool pushKV(std::string key, std::string val);
     bool pushKV(std::string key, const char *val_);
     bool pushKV(std::string key, int64_t val_);
